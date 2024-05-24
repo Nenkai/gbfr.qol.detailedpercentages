@@ -1,6 +1,6 @@
-﻿using gbfr.qol.detailledpercentages.Configuration;
+﻿using gbfr.qol.detailedpercentages.Configuration;
 
-namespace gbfr.qol.detailledpercentages.Template
+namespace gbfr.qol.detailedpercentages.Template
 {
     /// <summary>
     /// Base class for implementing mod functionality.

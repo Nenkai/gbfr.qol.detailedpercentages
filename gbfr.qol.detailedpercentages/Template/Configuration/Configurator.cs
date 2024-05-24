@@ -1,8 +1,8 @@
-﻿using gbfr.qol.detailledpercentages.Configuration;
+﻿using gbfr.qol.detailedpercentages.Configuration;
 
 using Reloaded.Mod.Interfaces;
 
-namespace gbfr.qol.detailledpercentages.Template.Configuration
+namespace gbfr.qol.detailedpercentages.Template.Configuration
 {
     public class Configurator : IConfiguratorV3
     {

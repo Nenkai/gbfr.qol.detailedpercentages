@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace gbfr.qol.detailledpercentages.Template.Configuration
+namespace gbfr.qol.detailedpercentages.Template.Configuration
 {
     public class Utilities
     {

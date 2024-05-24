@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace gbfr.qol.detailledpercentages;
+namespace gbfr.qol.detailedpercentages;
 
 public class XXHash32Custom
 {

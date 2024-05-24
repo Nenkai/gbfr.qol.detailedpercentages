@@ -1,10 +1,11 @@
-﻿using gbfr.qol.detailledpercentages.Template.Configuration;
+﻿using gbfr.qol.detailedpercentages.Template.Configuration;
 
 using Reloaded.Mod.Interfaces.Structs;
 
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
-namespace gbfr.qol.detailledpercentages.Configuration
+namespace gbfr.qol.detailedpercentages.Configuration
 {
     public class Config : Configurable<Config>
     {
@@ -32,10 +33,27 @@ namespace gbfr.qol.detailledpercentages.Configuration
         [DefaultValue(true)]
         public bool ShowDetailledEnemyDamage { get; set; } = true;
 
+        [DisplayName("Enemy Damage Precision")]
+        [Description("Number of digits after period.")]
+        [SliderControlParams(minimum: 0.0, maximum: 4.0, smallChange: 1.0, tickFrequency: 1, isSnapToTickEnabled: true, tickPlacement: SliderControlTickPlacement.BottomRight,
+            showTextField: true,
+            isTextFieldEditable: true,
+            textValidationRegex: "\\d{1-3}")]
+        [DefaultValue(2)]
+        public int EnemyDamagePrecision { get; set; } = 2;
+
         [DisplayName("Show Detailled SBA")]
         [DefaultValue(true)]
         public bool ShowDetailledSBA { get; set; } = true;
 
+        [DisplayName("SBA Precision")]
+        [Description("Number of digits after period.")]
+        [SliderControlParams(minimum: 0.0, maximum: 4.0, smallChange: 1.0, tickFrequency: 1, isSnapToTickEnabled: true, tickPlacement: SliderControlTickPlacement.BottomRight,
+            showTextField: true,
+            isTextFieldEditable: true,
+            textValidationRegex: "\\d{1-3}")]
+        [DefaultValue(1)]
+        public int SBAPrecision { get; set; } = 1;
     }
 
     /// <summary>

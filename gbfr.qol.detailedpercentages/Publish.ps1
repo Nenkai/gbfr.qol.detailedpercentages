@@ -162,8 +162,8 @@ param (
     $UseScriptDirectory=$True,
 
     ## => User Config <= ## 
-    $ProjectPath = "gbfr.qol.detailledpercentages.csproj",
-    $PackageName = "gbfr.qol.detailledpercentages",
+    $ProjectPath = "gbfr.qol.detailedpercentages.csproj",
+    $PackageName = "gbfr.qol.detailedpercentages",
     $PublishOutputDir = "Publish/ToUpload",
 
     ## => User: Delta Config
@@ -180,7 +180,7 @@ param (
 
     $GameBananaItemId = 333681, # From mod page URL.
 
-    $NuGetPackageId = "gbfr.qol.detailledpercentages",
+    $NuGetPackageId = "gbfr.qol.detailedpercentages",
     $NuGetFeedUrl = "http://packages.sewer56.moe:5000/v3/index.json",
     $NuGetAllowUnlisted = $False,
 

@@ -8,8 +8,8 @@ using Reloaded.Memory.Sigscan.Definitions.Structs;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
 
-using gbfr.qol.detailledpercentages.Configuration;
-using gbfr.qol.detailledpercentages.Template;
+using gbfr.qol.detailedpercentages.Configuration;
+using gbfr.qol.detailedpercentages.Template;
 using Reloaded.Memory;
 using Reloaded.Memory.Interfaces;
 using Reloaded.Hooks.ReloadedII.Interfaces;
@@ -17,7 +17,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 
-namespace gbfr.qol.detailledpercentages;
+namespace gbfr.qol.detailedpercentages;
 
 /// <summary>
 /// Your mod logic goes here.
@@ -183,7 +183,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         if (_isEditingPlayer && _configuration.ShowDetailledSBA && number >> 20 > 0) // Hack to check if it's a float lol.
         {
             float sbaPercent = BitConverter.Int32BitsToSingle((int)number);
-            string sbaPercentStr = $"{sbaPercent * 100:0.0}";
+            string sbaPercentStr = (sbaPercent * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
 
             Span<byte> span = new Span<byte>((byte*)_sbaStr, sbaPercentStr.Length);
             Encoding.ASCII.GetBytes(sbaPercentStr, span);
@@ -199,7 +199,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         else if (_isEditingEnemyDamage && _configuration.ShowDetailledEnemyDamage)
         {
             float percentage = BitConverter.Int32BitsToSingle((int)number);
-            string percentageStr = $"{percentage * 100:0.00}";
+            string percentageStr = (percentage * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
 
             Span<byte> span = new Span<byte>((byte*)_enemyDmgStr, percentageStr.Length);
             Encoding.ASCII.GetBytes(percentageStr, span);

@@ -1,10 +1,10 @@
-﻿using gbfr.qol.detailledpercentages.Configuration;
+﻿using gbfr.qol.detailedpercentages.Configuration;
 
 using Reloaded.Mod.Interfaces;
 
 using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
 
-namespace gbfr.qol.detailledpercentages.Template
+namespace gbfr.qol.detailedpercentages.Template
 {
     /// <summary>
     /// Represents information passed in from the mod loader template to the implementing mod.

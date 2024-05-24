@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace gbfr.qol.detailledpercentages.Template.Configuration
+namespace gbfr.qol.detailedpercentages.Template.Configuration
 {
     public class Configurable<TParentType> : IUpdatableConfigurable where TParentType : Configurable<TParentType>, new()
     {

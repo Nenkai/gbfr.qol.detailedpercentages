@@ -3,14 +3,14 @@
  * to make it easier to upgrade to newer versions of the template.
 */
 
-using gbfr.qol.detailledpercentages.Configuration;
-using gbfr.qol.detailledpercentages.Template.Configuration;
+using gbfr.qol.detailedpercentages.Configuration;
+using gbfr.qol.detailedpercentages.Template.Configuration;
 
 using Reloaded.Hooks.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using Reloaded.Mod.Interfaces.Internal;
 
-namespace gbfr.qol.detailledpercentages.Template
+namespace gbfr.qol.detailedpercentages.Template
 {
     public class Startup : IMod
     {
