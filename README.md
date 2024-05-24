@@ -1,1 +1,1 @@
-# gbfr.qol.returnimbuedstone
+# gbfr.qol.detailedpercentages
