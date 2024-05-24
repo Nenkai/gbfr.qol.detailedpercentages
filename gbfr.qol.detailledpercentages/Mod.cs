@@ -90,7 +90,9 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             return;
         }
 
+#if DEBUG
         Debugger.Launch();
+#endif
 
         _imageBase = Process.GetCurrentProcess().MainModule!.BaseAddress;
         var memory = Reloaded.Memory.Memory.Instance;
@@ -100,11 +102,11 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         {
             // Original function passes the percentage (0f to 1f) as a XMM register
 
-            // original instructions:
+            // original instructions (rounding):
             // vmulss  xmm0, xmm6, cs:dword_7FF604B240C8 (100.0)
             // vroundss xmm0, xmm0, xmm0, 0Ah
             // vcvttss2si edx, xmm0
-            Memory.Instance.SafeWrite((nuint)(address + 0x2D), new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6
+            Memory.Instance.SafeWrite((nuint)(address + 0x2D), new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6 - we're moving to edx as the next instruction is the set value function
                                                                            0x90, 0x90, 0x90, 0x90, 0x90,  0x90, 0x90, 0x90,  0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
             _logger.WriteLine($"[gbfr.qol.detailledpercentages] Percentage for enemy health patched (0x{address:X8})", _logger.ColorGreen);
 
@@ -134,10 +136,10 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
         SigScan("C5 CA 59 05 ?? ?? ?? ?? C5 FA 2C D0 E8 ?? ?? ?? ?? C4 C1 7A 11 B5 ?? ?? ?? ?? 49 8B 46", "", address =>
         {
-            // original instructions:
+            // original instructions (rounding):
             // vmulss xmm0, xmm6, cs:dword_7FF604B240C8 (100.0)
             // vcvttss2si edx, xmm0
-            Memory.Instance.SafeWrite((nuint)address, new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6
+            Memory.Instance.SafeWrite((nuint)address, new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6 - we're moving to edx as the next instruction is the set value function
                                                                    0x90, 0x90, 0x90, 0x90,
                                                                    0x90, 0x90, 0x90, 0x90 });
 
