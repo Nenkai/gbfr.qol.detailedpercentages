@@ -29,7 +29,7 @@ namespace gbfr.qol.detailedpercentages.Configuration
             The `DefaultValue` attribute is used as part of the `Reset` button in Reloaded-Launcher.
         */
 
-        [DisplayName("Show Detailled Enemy Damage")]
+        [DisplayName("Show Detailed Enemy Damage")]
         [DefaultValue(true)]
         public bool ShowDetailledEnemyDamage { get; set; } = true;
 
@@ -42,7 +42,7 @@ namespace gbfr.qol.detailedpercentages.Configuration
         [DefaultValue(2)]
         public int EnemyDamagePrecision { get; set; } = 2;
 
-        [DisplayName("Show Detailled SBA")]
+        [DisplayName("Show Detailed SBA")]
         [DefaultValue(true)]
         public bool ShowDetailledSBA { get; set; } = true;
 

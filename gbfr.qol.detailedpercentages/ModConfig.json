@@ -2,7 +2,7 @@
   "ModId": "gbfr.qol.detailedpercentages",
   "ModName": "Detailed SBA & Enemy Percentage",
   "ModAuthor": "Nenkai",
-  "ModVersion": "1.0.0",
+  "ModVersion": "1.0.1",
   "ModDescription": "Display more accurate SBA & Enemy Health percentage.",
   "ModDll": "gbfr.qol.detailedpercentages.dll",
   "ModIcon": "Preview.png",

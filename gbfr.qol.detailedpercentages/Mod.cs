@@ -15,6 +15,7 @@ using Reloaded.Memory.Interfaces;
 using Reloaded.Hooks.ReloadedII.Interfaces;
 using System.Runtime.InteropServices;
 using System.Text;
+using Reloaded.Memory.Pointers;
 
 
 namespace gbfr.qol.detailedpercentages;
@@ -180,36 +181,41 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
     public void TextComponent_SetTextFromInt(void* /* ui::component::Text */ this_, long number)
     {
-        if (_isEditingPlayer && _configuration.ShowDetailledSBA && number >> 20 > 0) // Hack to check if it's a float lol.
+        if (_isEditingPlayer)
         {
-            float sbaPercent = BitConverter.Int32BitsToSingle((int)number);
-            string sbaPercentStr = (sbaPercent * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
+            float percent = BitConverter.Int32BitsToSingle((int)number);
+            string textStr;
 
-            Span<byte> span = new Span<byte>((byte*)_sbaStr, sbaPercentStr.Length);
-            Encoding.ASCII.GetBytes(sbaPercentStr, span);
-
-            GameString str = new GameString()
+            if (number >> 20 > 0) // Hack to check if it's a float lol.
             {
-                StringPtr = _sbaStr,
-                Length = (uint)sbaPercentStr.Length
-            };
+                if (_configuration.ShowDetailledSBA) 
+                    textStr = (percent * 100).ToString($"0.{new string('0', _configuration.SBAPrecision)}");
+                else
+                    textStr = (percent * 100).ToString("0");
+            }
+            else
+                textStr = number.ToString(); // This function is also used for level & health, so don't do anything here
+                
 
+            Span<byte> span = new((byte*)_sbaStr, textStr.Length);
+            Encoding.ASCII.GetBytes(textStr, span);
+
+            GameString str = new GameString(_sbaStr, (uint)textStr.Length);
             Wrapper_SetTextComponentText(this_, &str, 0x887AE0B0, -1);
         }
-        else if (_isEditingEnemyDamage && _configuration.ShowDetailledEnemyDamage)
+        else if (_isEditingEnemyDamage)
         {
             float percentage = BitConverter.Int32BitsToSingle((int)number);
-            string percentageStr = (percentage * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
+            string textStr;
+            if (_configuration.ShowDetailledEnemyDamage)
+                textStr = (percentage * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
+            else
+                textStr = (percentage * 100).ToString("0");
 
-            Span<byte> span = new Span<byte>((byte*)_enemyDmgStr, percentageStr.Length);
-            Encoding.ASCII.GetBytes(percentageStr, span);
+            Span<byte> span = new Span<byte>((byte*)_enemyDmgStr, textStr.Length);
+            Encoding.ASCII.GetBytes(textStr, span);
 
-            GameString str = new GameString()
-            {
-                StringPtr = _enemyDmgStr,
-                Length = (uint)percentageStr.Length
-            };
-
+            GameString str = new GameString(_enemyDmgStr, (uint)textStr.Length);
             Wrapper_SetTextComponentText(this_, &str, 0x887AE0B0, -1);
         }
         else
@@ -220,6 +226,12 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     {
         public nint StringPtr;
         public uint Length;
+
+        public GameString(nint strPtr, uint length)
+        {
+            StringPtr = strPtr;
+            Length = length;
+        }
     }
 
     #region Standard Overrides
