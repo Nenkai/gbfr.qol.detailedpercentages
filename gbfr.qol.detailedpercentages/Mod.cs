@@ -62,19 +62,21 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
     public bool _isEditingEnemyDamage = false;
     public bool _isEditingPlayer = false;
+    private ControllerEmParam* _controllerEmParamPtr;
+    private uint _lastMaxHealth;
 
     // ui::component::Text
-    private TextComponentSetTextDelegate Wrapper_SetTextComponentText;
-    public unsafe delegate void TextComponentSetTextDelegate(void* a1, GameString* str, uint unkHash, int unk);
+    private TextComponentSetText Wrapper_SetTextComponentText;
+    public unsafe delegate void TextComponentSetText(nint a1, GameString* str, uint unkHash, int unk);
 
-    private IHook<UpdateEnemyHealthPercentageDelegate> _enemyHealthPercentageHook;
-    public delegate void UpdateEnemyHealthPercentageDelegate(void* a1);
+    private IHook<ControllerEmParam_UpdateEnemyHealthPercentage> _enemyHealthPercentageHook;
+    public delegate void ControllerEmParam_UpdateEnemyHealthPercentage(ControllerEmParam* this_);
 
-    private IHook<PlayerParamUpdateDelegate> _playerParamUpdateHook;
-    public delegate void PlayerParamUpdateDelegate(void* a1);
+    private IHook<PlayerParamUpdate> _playerParamUpdateHook;
+    public delegate void PlayerParamUpdate(nint a1);
 
-    private IHook<SetTextComponentFromIntDelegate> _setTextComponentFromInt;
-    public delegate void SetTextComponentFromIntDelegate(void* a1, long number);
+    private IHook<TextComponent_SetTextFromInt> _setTextComponentFromInt;
+    public delegate void TextComponent_SetTextFromInt(nint a1, long number);
 
     public Mod(ModContext context)
     {
@@ -109,30 +111,30 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             // vcvttss2si edx, xmm0
             Memory.Instance.SafeWrite((nuint)(address + 0x2D), new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6 - we're moving to edx as the next instruction is the set value function
                                                                            0x90, 0x90, 0x90, 0x90, 0x90,  0x90, 0x90, 0x90,  0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
-            _logger.WriteLine($"[gbfr.qol.detailledpercentages] Percentage for enemy health patched (0x{address:X8})", _logger.ColorGreen);
+            _logger.WriteLine($"[{_modConfig.ModId}] Percentage for enemy health patched (0x{address:X8})", _logger.ColorGreen);
 
             // call ApplyText
-            _enemyHealthPercentageHook = _hooks!.CreateHook<UpdateEnemyHealthPercentageDelegate>(OnWriteDamage, address).Activate();
-            _logger.WriteLine($"[gbfr.qol.detailledpercentages] Successfully hooked UpdateEnemyHealthPercentage (0x{address:X8})", _logger.ColorGreen);
+            _enemyHealthPercentageHook = _hooks!.CreateHook<ControllerEmParam_UpdateEnemyHealthPercentage>(ControllerEmParam_UpdateEnemyHealthPercentageImpl, address).Activate();
+            _logger.WriteLine($"[{_modConfig.ModId}] Successfully hooked UpdateEnemyHealthPercentage (0x{address:X8})", _logger.ColorGreen);
         });
 
         // Hook the function that requests player param (aka player ui/gauge etc)
         SigScan("55 41 57 41 56 41 55 41 54 56 57 53 48 81 EC ?? ?? ?? ?? 48 8D AC 24 ?? ?? ?? ?? C5 F8 29 BD ?? ?? ?? ?? C5 F8 29 75 ?? 48 C7 45 ?? ?? ?? ?? ?? 49 89 CD", "", address =>
         {
-            _playerParamUpdateHook = _hooks!.CreateHook<PlayerParamUpdateDelegate>(OnPlayerUIUpdate, address).Activate();
-            _logger.WriteLine($"[gbfr.qol.detailledpercentages] Successfully hooked PlayerParamUpdate (0x{address:X8})", _logger.ColorGreen);
+            _playerParamUpdateHook = _hooks!.CreateHook<PlayerParamUpdate>(PlayerParamUpdateImpl, address).Activate();
+            _logger.WriteLine($"[{_modConfig.ModId}] Successfully hooked PlayerParamUpdate (0x{address:X8})", _logger.ColorGreen);
         });
 
         SigScan("41 56 56 57 53 48 83 EC ?? 49 89 CE 89 D0", "", address =>
         {
-            _setTextComponentFromInt = _hooks!.CreateHook<SetTextComponentFromIntDelegate>(TextComponent_SetTextFromInt, address).Activate();
-            _logger.WriteLine($"[gbfr.qol.detailledpercentages] Successfully hooked SetTextComponentFromInt (0x{address:X8})", _logger.ColorGreen);
+            _setTextComponentFromInt = _hooks!.CreateHook<TextComponent_SetTextFromInt>(TextComponent_SetTextFromIntImpl, address).Activate();
+            _logger.WriteLine($"[{_modConfig.ModId}] Successfully hooked SetTextComponentFromInt (0x{address:X8})", _logger.ColorGreen);
         });
 
         SigScan("55 41 57 41 56 41 55 41 54 56 57 53 48 83 EC ?? 48 8D 6C 24 ?? 48 C7 45 ?? ?? ?? ?? ?? 45 89 C7 49 89 D2", "", address =>
         {
-            Wrapper_SetTextComponentText = _hooks!.CreateWrapper<TextComponentSetTextDelegate>(address, out nint wrapperAddress);
-            _logger.WriteLine($"[gbfr.qol.detailledpercentages] Found TextComponentSetText (0x{address:X8})", _logger.ColorGreen);
+            Wrapper_SetTextComponentText = _hooks!.CreateWrapper<TextComponentSetText>(address, out nint wrapperAddress);
+            _logger.WriteLine($"[{_modConfig.ModId}] Found TextComponentSetText (0x{address:X8})", _logger.ColorGreen);
         });
 
         SigScan("C5 CA 59 05 ?? ?? ?? ?? C5 FA 2C D0 E8 ?? ?? ?? ?? C4 C1 7A 11 B5 ?? ?? ?? ?? 49 8B 46", "", address =>
@@ -144,7 +146,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
                                                                    0x90, 0x90, 0x90, 0x90,
                                                                    0x90, 0x90, 0x90, 0x90 });
 
-            _logger.WriteLine($"[gbfr.qol.detailledpercentages] Percentage for SBA patched (0x{address:X8})", _logger.ColorGreen);
+            _logger.WriteLine($"[{_modConfig.ModId}] Percentage for SBA patched (0x{address:X8})", _logger.ColorGreen);
         });
     }
 
@@ -160,7 +162,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         });
     }
 
-    public void OnPlayerUIUpdate(void* /* ui::component::ControllerPlParameter01 */ this_)
+    public void PlayerParamUpdateImpl(nint /* ui::component::ControllerPlParameter01 */ this_)
     {
         // No better way to know where we are coming from so yeah :/
         _isEditingPlayer = true;
@@ -168,8 +170,10 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         _isEditingPlayer = false;
     }
 
-    public void OnWriteDamage(void* /* ui::component::ControllerEmParam */ this_)
+    public void ControllerEmParam_UpdateEnemyHealthPercentageImpl(ControllerEmParam* /* ui::component::ControllerEmParam */ this_)
     {
+        _controllerEmParamPtr = this_;
+
         // No better way to know where we are coming from so yeah :/
         _isEditingEnemyDamage = true;
         _enemyHealthPercentageHook.OriginalFunction(this_);
@@ -179,7 +183,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     private nint _enemyDmgStr = Marshal.AllocHGlobal(0x10);
     private nint _sbaStr = Marshal.AllocHGlobal(0x10);
 
-    public void TextComponent_SetTextFromInt(void* /* ui::component::Text */ this_, long number)
+    public void TextComponent_SetTextFromIntImpl(nint /* ui::component::Text */ this_, long number)
     {
         if (_isEditingPlayer)
         {
@@ -205,12 +209,35 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         }
         else if (_isEditingEnemyDamage)
         {
-            float percentage = BitConverter.Int32BitsToSingle((int)number);
             string textStr;
-            if (_configuration.ShowDetailledEnemyDamage)
-                textStr = (percentage * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
+
+            // This was a test attempt in showing enemy damage rather than %
+            if (false)
+            {
+                Behavior* ent = _controllerEmParamPtr->BehaviorEntity;
+
+                // Refer to https://github.com/Nenkai/gbfr.utility.modtools's dumped reflection data as for
+                // how Root is found for instance
+
+                // TODO: Find out how to navigate through objects properly (say: index by name rather than children list)
+                // Root aka root01 (id 1) -> base01 (id 2) -> text02 (id 18) -> text02_hp (id 21)
+                ui_Object* text02_hp = _controllerEmParamPtr->Root.ObjectPtr->ChildrenBegin[0]->ChildrenBegin[5]->ChildrenBegin[1];
+
+                // TODO: Find the Text component.
+
+                textStr = $"{(ent is not null ? ent->HpStuff->Health : 0)} / {(ent is not null ? ent->HpStuff->HealthMax : _lastMaxHealth)}";
+
+                if (_controllerEmParamPtr->BehaviorEntity != null)
+                    _lastMaxHealth = _controllerEmParamPtr->BehaviorEntity->HpStuff->HealthMax;
+            }
             else
-                textStr = (percentage * 100).ToString("0");
+            {
+                float percentage = BitConverter.Int32BitsToSingle((int)number);
+                if (_configuration.ShowDetailledEnemyDamage)
+                    textStr = (percentage * 100).ToString($"0.{new string('0', _configuration.EnemyDamagePrecision)}");
+                else
+                    textStr = (percentage * 100).ToString("0");
+            }
 
             Span<byte> span = new Span<byte>((byte*)_enemyDmgStr, textStr.Length);
             Encoding.ASCII.GetBytes(textStr, span);
