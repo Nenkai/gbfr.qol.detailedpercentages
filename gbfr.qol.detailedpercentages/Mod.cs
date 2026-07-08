@@ -1,22 +1,33 @@
 ﻿using System.Diagnostics;
+using System.Drawing;
+using System.Net;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 
-using Reloaded.Mod.Interfaces;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.X64;
+using Reloaded.Hooks.ReloadedII.Interfaces;
+using Reloaded.Memory;
+using Reloaded.Memory.Interfaces;
+using Reloaded.Memory.Pointers;
 using Reloaded.Memory.Sigscan;
 using Reloaded.Memory.Sigscan.Definitions.Structs;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
-using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
+using Reloaded.Mod.Interfaces;
+
+using Microsoft.Extensions.Logging.Abstractions;
+
+using NenTools.Reloaded.ScanManager.Interfaces;
+
+using gbfrelink.utility.manager.Interfaces;
+
+
 
 using gbfr.qol.detailedpercentages.Configuration;
 using gbfr.qol.detailedpercentages.Template;
-using Reloaded.Memory;
-using Reloaded.Memory.Interfaces;
-using Reloaded.Hooks.ReloadedII.Interfaces;
-using System.Runtime.InteropServices;
-using System.Text;
-using Reloaded.Memory.Pointers;
 
+using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
 
 namespace gbfr.qol.detailedpercentages;
 
@@ -70,7 +81,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     public unsafe delegate void TextComponentSetText(nint a1, GameString* str, uint unkHash, int unk);
 
     private IHook<ControllerEmParam_UpdateEnemyHealthPercentage> _enemyHealthPercentageHook;
-    public delegate void ControllerEmParam_UpdateEnemyHealthPercentage(ControllerEmParam* this_);
+    public delegate void ControllerEmParam_UpdateEnemyHealthPercentage(ControllerEmParam* this_, float v);
 
     private IHook<PlayerParamUpdate> _playerParamUpdateHook;
     public delegate void PlayerParamUpdate(nint a1);
@@ -93,6 +104,20 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             return;
         }
 
+        WeakReference<IScanManager> scanManagerRef = _modLoader.GetController<IScanManager>();
+        if (!scanManagerRef.TryGetTarget(out IScanManager? scanManager))
+        {
+            _logger.WriteLine($"[{_modConfig.ModId}] ERROR: Unable to get IScanManager?", Color.Red);
+            return;
+        }
+
+        WeakReference<IUserDefinedParams> userDefinedParamsRef = _modLoader.GetController<IUserDefinedParams>();
+        if (!userDefinedParamsRef.TryGetTarget(out IUserDefinedParams? userDefinedParams))
+        {
+            _logger.WriteLine($"[{_modConfig.ModId}] ERROR: Unable to get IUserDefinedParams?", Color.Red);
+            return;
+        }
+
 #if DEBUG
         Debugger.Launch();
 #endif
@@ -100,8 +125,27 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         _imageBase = Process.GetCurrentProcess().MainModule!.BaseAddress;
         var memory = Reloaded.Memory.Memory.Instance;
 
+        string? signatureGroup = "";
+        if (!userDefinedParams.IsEndlessRagnarok())
+        {
+            signatureGroup = "granblue_fantasy_relink_v1.3";
+        }
+        else
+        {
+            var version = userDefinedParams.GetGameVersion();
+            if (version == GameVersion.RelinkEndlessRagnarok_OpenBeta)
+                signatureGroup = "granblue_fantasy_relink_open_beta";
+            else if (version == GameVersion.RelinkEndlessRagnarok_ClosedBeta)
+                signatureGroup = "granblue_fantasy_relink_closed_beta";
+            else
+                signatureGroup = "granblue_fantasy_relink_er";
+        }
+
+        string signaturesFolder = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "Signatures");
+        scanManager.InitializeScans(signaturesFolder, _modConfig.ModId);
+
         // Hook the function that requests text change on health down, remove the rounding
-        SigScan("55 56 57 53 48 83 EC ?? 48 8D 6C 24 ?? C5 F8 29 75 ?? 48 C7 45 ?? ?? ?? ?? ?? C5 F8 28 F1 48 89 CE 48 8B 89", "", address =>
+        scanManager.AddScan("EnemyHealthPercentage", signatureGroup, address =>
         {
             // Original function passes the percentage (0f to 1f) as a XMM register
 
@@ -109,8 +153,10 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             // vmulss  xmm0, xmm6, cs:dword_7FF604B240C8 (100.0)
             // vroundss xmm0, xmm0, xmm0, 0Ah
             // vcvttss2si edx, xmm0
-            Memory.Instance.SafeWrite((nuint)(address + 0x2D), new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6 - we're moving to edx as the next instruction is the set value function
-                                                                           0x90, 0x90, 0x90, 0x90, 0x90,  0x90, 0x90, 0x90,  0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
+
+            int offset = userDefinedParams.IsEndlessRagnarok() ? 0x1E : 0x2D;
+            Memory.Instance.SafeWrite((nuint)(address + offset), new byte[] { 0x66, 0x0F, 0x7E, 0xF2, // movd   edx,xmm6 - we're moving to edx as the next instruction is the set value function
+                                                               0x90, 0x90, 0x90, 0x90, 0x90,  0x90, 0x90, 0x90,  0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
             _logger.WriteLine($"[{_modConfig.ModId}] Percentage for enemy health patched (0x{address:X8})", _logger.ColorGreen);
 
             // call ApplyText
@@ -118,26 +164,28 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             _logger.WriteLine($"[{_modConfig.ModId}] Successfully hooked UpdateEnemyHealthPercentage (0x{address:X8})", _logger.ColorGreen);
         });
 
+
         // Hook the function that requests player param (aka player ui/gauge etc)
-        SigScan("55 41 57 41 56 41 55 41 54 56 57 53 48 81 EC ?? ?? ?? ?? 48 8D AC 24 ?? ?? ?? ?? C5 F8 29 BD ?? ?? ?? ?? C5 F8 29 75 ?? 48 C7 45 ?? ?? ?? ?? ?? 49 89 CD", "", address =>
+        scanManager.AddScan("PlayerParamUpdate", signatureGroup, address =>
         {
             _playerParamUpdateHook = _hooks!.CreateHook<PlayerParamUpdate>(PlayerParamUpdateImpl, address).Activate();
             _logger.WriteLine($"[{_modConfig.ModId}] Successfully hooked PlayerParamUpdate (0x{address:X8})", _logger.ColorGreen);
         });
 
-        SigScan("41 56 56 57 53 48 83 EC ?? 49 89 CE 89 D0", "", address =>
+
+        scanManager.AddScan("SetComponentFromInt", signatureGroup, address =>
         {
             _setTextComponentFromInt = _hooks!.CreateHook<TextComponent_SetTextFromInt>(TextComponent_SetTextFromIntImpl, address).Activate();
             _logger.WriteLine($"[{_modConfig.ModId}] Successfully hooked SetTextComponentFromInt (0x{address:X8})", _logger.ColorGreen);
         });
 
-        SigScan("55 41 57 41 56 41 55 41 54 56 57 53 48 83 EC ?? 48 8D 6C 24 ?? 48 C7 45 ?? ?? ?? ?? ?? 45 89 C7 49 89 D2", "", address =>
+        scanManager.AddScan("TextComponentSetText", signatureGroup, address =>
         {
             Wrapper_SetTextComponentText = _hooks!.CreateWrapper<TextComponentSetText>(address, out nint wrapperAddress);
             _logger.WriteLine($"[{_modConfig.ModId}] Found TextComponentSetText (0x{address:X8})", _logger.ColorGreen);
         });
 
-        SigScan("C5 CA 59 05 ?? ?? ?? ?? C5 FA 2C D0 E8 ?? ?? ?? ?? C4 C1 7A 11 B5 ?? ?? ?? ?? 49 8B 46", "", address =>
+        scanManager.AddScan("SBAPercentage", signatureGroup, address =>
         {
             // original instructions (rounding):
             // vmulss xmm0, xmm6, cs:dword_7FF604B240C8 (100.0)
@@ -148,18 +196,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
             _logger.WriteLine($"[{_modConfig.ModId}] Percentage for SBA patched (0x{address:X8})", _logger.ColorGreen);
         });
-    }
 
-    private void SigScan(string pattern, string name, Action<nint> action)
-    {
-        _startupScanner?.AddMainModuleScan(pattern, result =>
-        {
-            if (!result.Found)
-            {
-                return;
-            }
-            action(_imageBase + result.Offset);
-        });
     }
 
     public void PlayerParamUpdateImpl(nint /* ui::component::ControllerPlParameter01 */ this_)
@@ -170,13 +207,13 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         _isEditingPlayer = false;
     }
 
-    public void ControllerEmParam_UpdateEnemyHealthPercentageImpl(ControllerEmParam* /* ui::component::ControllerEmParam */ this_)
+    public void ControllerEmParam_UpdateEnemyHealthPercentageImpl(ControllerEmParam* /* ui::component::ControllerEmParam */ this_, float updateDelta)
     {
         _controllerEmParamPtr = this_;
 
         // No better way to know where we are coming from so yeah :/
         _isEditingEnemyDamage = true;
-        _enemyHealthPercentageHook.OriginalFunction(this_);
+        _enemyHealthPercentageHook.OriginalFunction(this_, updateDelta);
         _isEditingEnemyDamage = false;
     }
 

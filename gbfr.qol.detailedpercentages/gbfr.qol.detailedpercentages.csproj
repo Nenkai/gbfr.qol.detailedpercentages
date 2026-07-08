@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <TargetFramework>net9.0-windows7.0</TargetFramework>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>10.0</LangVersion>
@@ -40,15 +40,30 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="gbfrelink.utility.manager.Interfaces" Version="1.1.0" />
+    <PackageReference Include="NenTools.Reloaded.ScanManager.Interfaces" Version="1.0.0" />
     <PackageReference Include="Reloaded.Memory" Version="9.4.1" />
     <PackageReference Include="Reloaded.Memory.Sigscan" Version="3.1.8" />
     <PackageReference Include="Reloaded.Memory.SigScan.ReloadedII.Interfaces" Version="1.2.0" />
     <PackageReference Include="Reloaded.Mod.Interfaces" Version="2.4.0" ExcludeAssets="runtime" />
     <PackageReference Include="Reloaded.SharedLib.Hooks" Version="1.9.0" />
+    <PackageReference Include="RyoTune.Reloaded" Version="4.2.1" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Preview.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Signatures\granblue_fantasy_relink_closed_beta.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Signatures\granblue_fantasy_relink_er.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Signatures\granblue_fantasy_relink_open_beta.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Signatures\granblue_fantasy_relink_v1.3.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
